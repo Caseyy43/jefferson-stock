@@ -622,6 +622,7 @@ function render(list){
               ? `<li><span class="n-sku">${escapeHtml(sku)}</span><span class="n-desc"> — ${escapeHtml(match.desc)}</span></li>`
               : `<li><span class="n-sku n-missing">${escapeHtml(sku)}</span><span class="n-desc n-missing"> (no longer on the sheet)</span></li>`;
           }).join('')}</ul>
+          <button class="ghost" data-add-components="${escapeHtml(p.id)}" type="button" style="margin-top:8px;width:100%;">+ Add these to order</button>
         </div>`
       : '';
 
@@ -700,6 +701,19 @@ function render(list){
   });
   grid.querySelectorAll('.qty-minus').forEach(btn => {
     btn.addEventListener('click', () => changeQty(btn.dataset.id, -1));
+  });
+
+  grid.querySelectorAll('[data-add-components]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const sourceProduct = products.find(pr => pr.id === btn.dataset.addComponents);
+      if (!sourceProduct || !sourceProduct.components) return;
+      let addedCount = 0;
+      sourceProduct.components.forEach(sku => {
+        const match = products.find(pr => pr.sku === sku);
+        if (match) { changeQty(match.id, 1); addedCount++; }
+      });
+      showToast(addedCount ? `Added ${addedCount} item${addedCount === 1 ? '' : 's'} to order` : 'Nothing to add');
+    });
   });
 
   grid.querySelectorAll('.stock-input').forEach(input => {
