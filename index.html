@@ -73,6 +73,42 @@
   input[type=file]{display:none;}
 
   .form-actions{display:flex;gap:10px;margin-top:4px;flex-wrap:wrap;}
+
+  .component-picker{position:relative;}
+  .component-picker input{width:100%;}
+  .component-suggestions{
+    position:absolute;top:100%;left:0;right:0;z-index:5;
+    background:var(--card);border:1.5px solid var(--green);border-top:none;
+    max-height:180px;overflow-y:auto;
+  }
+  .component-suggestions .suggestion{
+    padding:8px 11px;font-size:13px;cursor:pointer;border-bottom:1px solid var(--hairline);
+  }
+  .component-suggestions .suggestion:hover{background:var(--bg);}
+  .component-suggestions .suggestion .s-sku{font-family:'JetBrains Mono',monospace;color:var(--green);font-weight:600;}
+  .component-suggestions .suggestion .s-desc{color:var(--ink-soft);margin-left:6px;}
+  .component-suggestions .no-match{padding:8px 11px;font-size:12.5px;color:var(--ink-soft);}
+  .component-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+  .component-chip{
+    display:flex;align-items:center;gap:6px;
+    background:var(--bg);border:1.5px solid var(--hairline);border-radius:12px;
+    padding:4px 6px 4px 10px;font-size:12px;
+  }
+  .component-chip .chip-sku{font-family:'JetBrains Mono',monospace;color:var(--green);}
+  .component-chip button{
+    background:none;border:none;color:var(--ink-soft);cursor:pointer;
+    width:18px;height:18px;border-radius:50%;font-size:13px;line-height:1;
+  }
+  .component-chip button:hover{color:var(--danger);}
+
+  .needs-also{margin-top:10px;padding-top:10px;border-top:1px solid var(--hairline);font-size:12.5px;color:var(--ink-soft);}
+  .needs-also .needs-label{font-size:10.5px;color:var(--ink-soft);margin-bottom:4px;}
+  .needs-also ul{list-style:none;}
+  .needs-also li{display:flex;gap:6px;line-height:1.6;}
+  .needs-also li::before{content:"+";color:var(--green);font-weight:700;}
+  .needs-also .n-sku{font-family:'JetBrains Mono',monospace;color:var(--green);font-weight:600;}
+  .needs-also .n-desc{color:var(--ink-soft);}
+  .needs-also .n-missing{font-style:italic;}
   button.primary{background:var(--green);color:var(--photo-ink);border:none;padding:11px 20px;font-size:14px;font-weight:600;font-family:'Inter',sans-serif;border-radius:2px;cursor:pointer;}
   button.primary:hover{opacity:0.9;}
   button.primary:disabled{opacity:0.5;cursor:default;}
@@ -243,6 +279,14 @@
           </div>
         </div>
       </div>
+      <div class="field">
+        <label for="f-component-search">Needs these products too (optional)</label>
+        <div class="component-picker">
+          <input type="text" id="f-component-search" placeholder="Search by code or description…" autocomplete="off" />
+          <div class="component-suggestions" id="component-suggestions" style="display:none;"></div>
+        </div>
+        <div class="component-chips" id="component-chips"></div>
+      </div>
       <p class="error-msg" id="form-error">Enter a product code and description first.</p>
       <div class="form-actions">
         <button class="primary" id="add-btn">Add to sheet</button>
@@ -350,6 +394,7 @@ async function tryUnlock(){
 let products = [];       // [{id, sku, desc, contents, photo, stock}]
 let orderQty = loadOrderQty();
 let pendingPhoto = null;
+let pendingComponents = [];
 let editingId = null;
 let firstSnapshotReceived = false;
 
@@ -378,7 +423,8 @@ onSnapshot(q, (snapshot) => {
       desc: data.desc || '',
       contents: data.contents || [],
       photo: data.photo || null,
-      stock: (typeof data.stock === 'number') ? data.stock : 0
+      stock: (typeof data.stock === 'number') ? data.stock : 0,
+      components: data.components || []
     };
   });
   firstSnapshotReceived = true;
@@ -452,6 +498,18 @@ function render(list){
       ? '<ul>' + p.contents.map(c => `<li>${escapeHtml(c)}</li>`).join('') + '</ul>'
       : '<p class="none">Contents not logged</p>';
 
+    const needsAlsoHTML = (p.components && p.components.length)
+      ? `<div class="needs-also">
+          <div class="needs-label">Needs also</div>
+          <ul>${p.components.map(sku => {
+            const match = products.find(pr => pr.sku === sku);
+            return match
+              ? `<li><span class="n-sku">${escapeHtml(sku)}</span><span class="n-desc"> — ${escapeHtml(match.desc)}</span></li>`
+              : `<li><span class="n-sku n-missing">${escapeHtml(sku)}</span><span class="n-desc n-missing"> (no longer on the sheet)</span></li>`;
+          }).join('')}</ul>
+        </div>`
+      : '';
+
     const photoInner = p.photo
       ? `<img src="${p.photo}" alt="${escapeHtml(p.sku)}" />`
       : `<span class="placeholder-tag">Photo pending</span>${p.sku.includes('HKPEG') ? hookSVG() : bracketSVG()}`;
@@ -474,6 +532,7 @@ function render(list){
           <div class="contents-label">Contents of box</div>
           ${contentsHTML}
         </div>
+        ${needsAlsoHTML}
         <div class="stock-row">
           <span class="row-label">Stock on hand</span>
           <input type="number" min="0" class="stock-input" data-id="${p.id}" value="${p.stock}" />
@@ -613,9 +672,56 @@ function clearForm(){
   photoInput.value = '';
   pendingPhoto = null;
   photoPreview.innerHTML = '<span>No photo</span>';
+  pendingComponents = [];
+  document.getElementById('f-component-search').value = '';
+  document.getElementById('component-suggestions').style.display = 'none';
+  renderComponentChips();
   document.getElementById('form-error').style.display = 'none';
 }
 document.getElementById('clear-form-btn').addEventListener('click', clearForm);
+
+function renderComponentChips(){
+  const container = document.getElementById('component-chips');
+  container.innerHTML = pendingComponents.map(sku => {
+    const match = products.find(pr => pr.sku === sku);
+    const label = match ? `${sku} — ${match.desc}` : sku;
+    return `<span class="component-chip"><span class="chip-sku">${escapeHtml(sku)}</span><button type="button" data-remove-component="${escapeHtml(sku)}" title="Remove">&times;</button></span>`;
+  }).join('');
+  container.querySelectorAll('[data-remove-component]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      pendingComponents = pendingComponents.filter(s => s !== btn.dataset.removeComponent);
+      renderComponentChips();
+    });
+  });
+}
+
+const componentSearchInput = document.getElementById('f-component-search');
+const componentSuggestions = document.getElementById('component-suggestions');
+componentSearchInput.addEventListener('input', () => {
+  const q = componentSearchInput.value.trim().toLowerCase();
+  if(!q){ componentSuggestions.style.display = 'none'; return; }
+  const currentSku = document.getElementById('f-sku').value.trim();
+  const matches = products.filter(p =>
+    (p.sku.toLowerCase().includes(q) || p.desc.toLowerCase().includes(q)) &&
+    p.sku !== currentSku &&
+    !pendingComponents.includes(p.sku)
+  ).slice(0, 8);
+  componentSuggestions.innerHTML = matches.length
+    ? matches.map(p => `<div class="suggestion" data-pick-sku="${escapeHtml(p.sku)}"><span class="s-sku">${escapeHtml(p.sku)}</span><span class="s-desc">${escapeHtml(p.desc)}</span></div>`).join('')
+    : '<div class="no-match">No matching products</div>';
+  componentSuggestions.style.display = 'block';
+  componentSuggestions.querySelectorAll('[data-pick-sku]').forEach(el => {
+    el.addEventListener('click', () => {
+      pendingComponents.push(el.dataset.pickSku);
+      renderComponentChips();
+      componentSearchInput.value = '';
+      componentSuggestions.style.display = 'none';
+    });
+  });
+});
+document.addEventListener('click', (e) => {
+  if(!e.target.closest('.component-picker')) componentSuggestions.style.display = 'none';
+});
 
 function startEdit(id){
   const p = products.find(pr => pr.id === id);
@@ -627,6 +733,8 @@ function startEdit(id){
   document.getElementById('f-stock').value = p.stock;
   pendingPhoto = p.photo || null;
   photoPreview.innerHTML = pendingPhoto ? `<img src="${pendingPhoto}" alt="preview" />` : '<span>No photo</span>';
+  pendingComponents = (p.components || []).slice();
+  renderComponentChips();
   document.getElementById('form-error').style.display = 'none';
 
   panelEl.classList.add('editing');
@@ -664,11 +772,11 @@ addBtn.addEventListener('click', async () => {
 
   try{
     if(editingId){
-      await updateDoc(doc(db, 'products', editingId), { sku, desc, contents, stock, photo: pendingPhoto });
+      await updateDoc(doc(db, 'products', editingId), { sku, desc, contents, stock, photo: pendingPhoto, components: pendingComponents });
       cancelEdit();
       showToast('Changes saved');
     } else {
-      await addDoc(collection(db, 'products'), { sku, desc, contents, stock, photo: pendingPhoto, createdAt: serverTimestamp() });
+      await addDoc(collection(db, 'products'), { sku, desc, contents, stock, photo: pendingPhoto, components: pendingComponents, createdAt: serverTimestamp() });
       clearForm();
       showToast('Added to sheet');
     }
@@ -752,6 +860,7 @@ document.getElementById('import-file').addEventListener('change', (e) => {
         await addDoc(collection(db, 'products'), {
           sku: item.sku || '', desc: item.desc || '', contents: item.contents || [],
           stock: (typeof item.stock === 'number') ? item.stock : 0,
+          components: item.components || [],
           photo, createdAt: serverTimestamp()
         });
         ok++;
