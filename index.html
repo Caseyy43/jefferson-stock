@@ -1275,5 +1275,15 @@ document.getElementById('add-consumable-btn').addEventListener('click', async ()
 });
 
 </script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {
+      // Offline caching just won't be available this session — the app
+      // still works fine online, so fail quietly rather than block anything.
+    });
+  });
+}
+</script>
 </body>
 </html>
