@@ -413,7 +413,7 @@ function showToast(msg){
 }
 
 // ---------- Firestore live sync ----------
-const q = query(collection(db, 'products'), orderBy('createdAt', 'desc'));
+const q = query(collection(db, 'products'), orderBy('sku'));
 onSnapshot(q, (snapshot) => {
   products = snapshot.docs.map(d => {
     const data = d.data();
