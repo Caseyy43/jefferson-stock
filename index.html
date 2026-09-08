@@ -864,7 +864,7 @@ function buildOrderText(){
   const lines = [];
   Object.entries(orderQty).forEach(([id, qty]) => {
     const p = products.find(pr => pr.id === id);
-    if(qty > 0 && p) lines.push(`${qty} x  ${p.sku}  —  ${p.desc}`);
+    if(qty > 0 && p) lines.push(`${qty} x  ${p.sku}`);
   });
   return lines.join('\n');
 }
@@ -1327,7 +1327,7 @@ document.getElementById('transfer-btn').addEventListener('click', async () => {
     const van = getSelectedVan();
     document.getElementById('m-email').value = localStorage.getItem(EMAIL_KEY) || '';
     document.getElementById('m-subject').value = `Stock transfer — ${van ? van.name : 'van'}`;
-    document.getElementById('m-body').value = `${qty} x  ${p.sku}  —  ${p.desc}  moved to ${van ? van.name : 'van'} on ${new Date().toLocaleDateString('en-GB')}`;
+    document.getElementById('m-body').value = `${qty} x  ${p.sku}  moved to ${van ? van.name : 'van'} on ${new Date().toLocaleDateString('en-GB')}`;
     modalOverlay.classList.add('show');
   }catch(e){ showToast('Could not transfer — check connection'); }
 });
