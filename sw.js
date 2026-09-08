@@ -1,7 +1,7 @@
 // Jefferson Stock — offline app-shell cache
 // Bump this version string on every future deploy so devices pick up changes
 // instead of getting stuck on a stale cached copy.
-const CACHE_NAME = 'jefferson-stock-v2';
+const CACHE_NAME = 'jefferson-stock-v3';
 
 const APP_SHELL = [
   './',

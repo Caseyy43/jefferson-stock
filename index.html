@@ -532,6 +532,10 @@ function getDeviceId(){
 }
 
 async function logVisit(){
+  // sessionStorage persists across a refresh but clears when the tab/app
+  // fully closes — so refreshing doesn't inflate the count, but a genuine
+  // new open later still does.
+  if (sessionStorage.getItem('jefferson-session-logged')) return;
   try{
     const deviceId = getDeviceId();
     const isFirstEver = !localStorage.getItem(FIRST_VISIT_KEY);
@@ -539,6 +543,7 @@ async function logVisit(){
     if (isFirstEver) data.firstVisit = serverTimestamp();
     await setDoc(doc(db, 'visit_log', deviceId), data, { merge: true });
     if (isFirstEver) localStorage.setItem(FIRST_VISIT_KEY, 'true');
+    sessionStorage.setItem('jefferson-session-logged', 'true');
   }catch(e){ /* usage tracking is best-effort — never blocks the app */ }
 }
 
