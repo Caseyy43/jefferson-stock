@@ -33,9 +33,12 @@
   .bg-motif img{width:100%;height:100%;object-fit:cover;object-position:top right;display:block;}
   .wrap{max-width:1180px;margin:0 auto;position:relative;z-index:1;}
 
-  header{border-bottom:3px solid var(--green);padding-bottom:18px;margin-bottom:22px;display:flex;justify-content:space-between;align-items:flex-end;gap:24px;flex-wrap:wrap;}
+  header{border-bottom:3px solid var(--green);padding-bottom:18px;margin-bottom:22px;display:flex;justify-content:space-between;align-items:flex-end;gap:24px;flex-wrap:wrap;position:sticky;top:0;z-index:5;background:var(--bg);transition:padding-bottom .25s ease, box-shadow .25s ease;}
+  header.compact{padding-bottom:8px;padding-top:6px;box-shadow:0 6px 16px rgba(0,0,0,0.35);}
+  header.compact .brand-row img{height:30px;}
+  header.compact .title-block p, header.compact .sync-status{display:none;}
   .brand-row{display:flex;align-items:center;gap:16px;}
-  .brand-row img{height:46px;width:auto;display:block;}
+  .brand-row img{height:46px;width:auto;display:block;transition:height .25s ease;}
   .title-block p{font-size:13px;color:var(--ink-soft);margin-top:8px;}
   .title-block h1{font-family:'Archivo',sans-serif;font-weight:700;font-size:18px;color:var(--ink-soft);margin-top:2px;}
   .sync-status{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--ink-soft);margin-top:6px;}
@@ -117,10 +120,12 @@
   .needs-also .n-sku{font-family:'JetBrains Mono',monospace;color:var(--green);font-weight:600;}
   .needs-also .n-desc{color:var(--ink-soft);}
   .needs-also .n-missing{font-style:italic;}
-  button.primary{background:var(--green);color:var(--photo-ink);border:none;padding:11px 20px;font-size:14px;font-weight:600;font-family:'Inter',sans-serif;border-radius:2px;cursor:pointer;}
+  button.primary{background:var(--green);color:var(--photo-ink);border:none;padding:11px 20px;font-size:14px;font-weight:600;font-family:'Inter',sans-serif;border-radius:2px;cursor:pointer;transition:transform .1s ease, opacity .1s ease;}
+  button.primary:active{transform:scale(0.96);opacity:0.9;}
   button.primary:hover{opacity:0.9;}
   button.primary:disabled{opacity:0.5;cursor:default;}
-  button.ghost{background:transparent;color:var(--ink-soft);border:1.5px solid var(--hairline);padding:11px 16px;font-size:13px;font-family:'Inter',sans-serif;border-radius:2px;cursor:pointer;}
+  button.ghost{background:transparent;color:var(--ink-soft);border:1.5px solid var(--hairline);padding:11px 16px;font-size:13px;font-family:'Inter',sans-serif;border-radius:2px;cursor:pointer;transition:transform .1s ease, border-color .15s ease, color .15s ease;}
+  button.ghost:active{transform:scale(0.96);}
   button.ghost:hover{border-color:var(--green);color:var(--ink);}
   .error-msg{font-size:12.5px;color:var(--danger);display:none;}
 
@@ -136,7 +141,8 @@
   input[type=file]#import-file{display:none;}
 
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:18px;}
-  .card{background:var(--card);border:1px solid var(--hairline);display:flex;flex-direction:column;position:relative;}
+  .card{background:var(--card);border:1px solid var(--hairline);display:flex;flex-direction:column;position:relative;transition:transform .12s ease, border-color .12s ease;}
+  .card:active{transform:scale(0.985);}
   .card .del-btn{position:absolute;top:8px;left:8px;z-index:2;width:24px;height:24px;border-radius:50%;background:rgba(29,32,33,0.85);color:var(--ink-soft);border:none;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
   .card .del-btn:hover{color:var(--danger);}
   .card .edit-btn{position:absolute;top:8px;left:40px;z-index:2;height:24px;padding:0 10px;border-radius:12px;background:rgba(29,32,33,0.85);color:var(--ink-soft);border:none;font-size:11px;font-family:'Inter',sans-serif;cursor:pointer;}
@@ -191,7 +197,8 @@
   .qty-row{display:flex;align-items:center;justify-content:space-between;padding-top:10px;border-top:1px solid var(--hairline);}
   .qty-row .row-label{font-size:10.5px;color:var(--ink-soft);}
   .qty-stepper{display:flex;align-items:center;gap:0;border:1.5px solid var(--hairline);border-radius:3px;overflow:hidden;}
-  .qty-stepper button{width:28px;height:28px;background:var(--bg);color:var(--ink);border:none;font-size:15px;cursor:pointer;line-height:1;}
+  .qty-stepper button{width:28px;height:28px;background:var(--bg);color:var(--ink);border:none;font-size:15px;cursor:pointer;line-height:1;transition:transform .1s ease;}
+  .qty-stepper button:active{transform:scale(0.9);}
   .qty-stepper button:hover{color:var(--green);}
   .qty-stepper .qty-val{width:32px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;}
   .qty-stepper.active{border-color:var(--green);}
@@ -222,13 +229,18 @@
   .tab-switch button{
     background:transparent;border:1.5px solid var(--hairline);color:var(--ink-soft);
     padding:10px 18px;font-size:13.5px;font-weight:600;font-family:'Inter',sans-serif;
-    border-radius:20px;cursor:pointer;
+    border-radius:20px;cursor:pointer;transition:transform .1s ease, background .15s ease, border-color .15s ease, color .15s ease;
   }
+  .tab-switch button:active{transform:scale(0.95);}
   .tab-switch button.active{background:var(--green);color:var(--photo-ink);border-color:var(--green);}
   .tab-switch button:not(.active):hover{border-color:var(--green);color:var(--ink);}
 
   .view{display:none;}
-  .view.active{display:block;}
+  .view.active{display:block;animation:viewFadeIn .22s ease;}
+  @keyframes viewFadeIn{
+    from{opacity:0;transform:translateY(6px);}
+    to{opacity:1;transform:translateY(0);}
+  }
 
   .van-row{display:flex;gap:10px;align-items:center;margin-bottom:22px;flex-wrap:wrap;}
   .van-row select{
@@ -254,7 +266,9 @@
   .van-item-row .vi-cat{font-size:11px;color:var(--ink-soft);}
   .van-item-row .vi-controls{display:flex;align-items:center;gap:8px;flex-shrink:0;}
   .van-item-row .vi-qty{font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--green);width:28px;text-align:center;}
-  .van-empty{color:var(--ink-soft);font-size:13px;padding:14px 0;font-style:italic;}
+  .van-empty{color:var(--ink-soft);font-size:13px;padding:20px 0;font-style:italic;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;}
+  .empty-icon{width:26px;height:26px;opacity:0.35;}
+  .empty .empty-icon{margin:0 auto 12px;display:block;}
 
   .consumable-add-row{display:grid;grid-template-columns:2fr 1fr 90px auto;gap:10px;margin-bottom:16px;align-items:end;}
   @media (max-width:640px){.consumable-add-row{grid-template-columns:1fr;}}
@@ -380,7 +394,7 @@
   </div>
 
   <div class="grid" id="grid"></div>
-  <div class="empty" id="empty">No lines match that search.</div>
+  <div class="empty" id="empty"><svg class="empty-icon" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M12 2l2.9 6.26L22 9.27l-5 4.87L18.18 21 12 17.27 5.82 21 7 14.14l-5-4.87 7.1-1.01L12 2z"/></svg>No lines match that search.</div>
 
   <footer>Synced live to every device via Firebase. Order quantities below are kept on this device only, until you send the order. · <a href="#" id="usage-link" style="color:var(--green);">Usage</a></footer>
 
@@ -1178,6 +1192,20 @@ tabVan.addEventListener('click', () => {
   viewVan.classList.add('active'); viewStock.classList.remove('active');
 });
 
+// ---------- Sticky shrinking header ----------
+const mainHeader = document.querySelector('header');
+if (mainHeader) {
+  let ticking = false;
+  window.addEventListener('scroll', () => {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(() => {
+      mainHeader.classList.toggle('compact', window.scrollY > 30);
+      ticking = false;
+    });
+  });
+}
+
 // ---------- Vans (shared, synced) ----------
 let vans = [];
 let selectedVanId = null;
@@ -1220,7 +1248,7 @@ function renderVanLists(){
   const standListEl = document.getElementById('van-stand-list');
   const consListEl = document.getElementById('van-consumable-list');
   if (!van) {
-    standListEl.innerHTML = '<div class="van-empty">No van selected yet — add one above.</div>';
+    standListEl.innerHTML = '<div class="van-empty"><svg class="empty-icon" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M12 2l2.9 6.26L22 9.27l-5 4.87L18.18 21 12 17.27 5.82 21 7 14.14l-5-4.87 7.1-1.01L12 2z"/></svg>No van selected yet — add one above.</div>';
     consListEl.innerHTML = '';
     return;
   }
@@ -1238,7 +1266,7 @@ function renderVanLists(){
         <button class="ghost" data-return-id="${id}" type="button" title="Return 1 to warehouse stock">Return 1</button>
       </div>
     </div>`;
-  }).join('') : '<div class="van-empty">Nothing transferred to this van yet.</div>';
+  }).join('') : '<div class="van-empty"><svg class="empty-icon" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M12 2l2.9 6.26L22 9.27l-5 4.87L18.18 21 12 17.27 5.82 21 7 14.14l-5-4.87 7.1-1.01L12 2z"/></svg>Nothing transferred to this van yet.</div>';
 
   standListEl.querySelectorAll('[data-return-id]').forEach(btn => {
     btn.addEventListener('click', () => returnToStock(btn.dataset.returnId));
@@ -1254,7 +1282,7 @@ function renderVanLists(){
         <input type="number" min="0" class="cons-qty-input" data-cons-id="${id}" value="${item.qty}" style="width:56px;text-align:center;background:var(--bg);border:1.5px solid var(--hairline);color:var(--green);font-family:'JetBrains Mono',monospace;font-weight:600;padding:5px;border-radius:3px;" />
       </div>
     </div>`;
-  }).join('') : '<div class="van-empty">No consumables logged for this van yet.</div>';
+  }).join('') : '<div class="van-empty"><svg class="empty-icon" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M12 2l2.9 6.26L22 9.27l-5 4.87L18.18 21 12 17.27 5.82 21 7 14.14l-5-4.87 7.1-1.01L12 2z"/></svg>No consumables logged for this van yet.</div>';
 
   consListEl.querySelectorAll('.cons-qty-input').forEach(input => {
     input.addEventListener('change', async () => {
