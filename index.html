@@ -145,8 +145,8 @@
   input[type=file]#import-file{display:none;}
 
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:18px;}
-  .card{background:var(--card);border:1px solid var(--hairline);display:flex;flex-direction:column;position:relative;box-shadow:0 2px 10px rgba(0,0,0,0.22);transition:transform .18s cubic-bezier(0.22,1,0.36,1), box-shadow .18s cubic-bezier(0.22,1,0.36,1), border-color .18s ease;}
-  .card:active{box-shadow:0 1px 4px rgba(0,0,0,0.25);transform:scale(0.985);}
+  .card{background:rgba(38,41,43,0.8);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--hairline);display:flex;flex-direction:column;position:relative;box-shadow:0 2px 10px rgba(0,0,0,0.22);transition:box-shadow .18s cubic-bezier(0.22,1,0.36,1), border-color .18s ease;}
+  .card:hover{box-shadow:0 6px 18px rgba(0,0,0,0.32);border-color:#4A4E50;}
   .card .del-btn{position:absolute;top:8px;left:8px;z-index:2;width:24px;height:24px;border-radius:50%;background:rgba(29,32,33,0.85);color:var(--ink-soft);border:none;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
   .card .del-btn:hover{color:var(--danger);}
   .card .edit-btn{position:absolute;top:8px;left:40px;z-index:2;height:24px;padding:0 10px;border-radius:12px;background:rgba(29,32,33,0.85);color:var(--ink-soft);border:none;font-size:11px;font-family:'Inter',sans-serif;cursor:pointer;}
