@@ -37,6 +37,15 @@
   header.compact{padding-bottom:8px;padding-top:6px;box-shadow:0 6px 16px rgba(0,0,0,0.35);}
   header.compact .brand-row img{height:30px;}
   header.compact .title-block p, header.compact .sync-status{display:none;}
+  .header-search-btn{
+    flex-shrink:0;width:42px;height:42px;border-radius:50%;background:var(--green);color:var(--photo-ink);
+    border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;
+    transition:transform .1s ease, width .25s ease, height .25s ease;
+  }
+  .header-search-btn:active{transform:scale(0.92);}
+  .header-search-btn svg{width:20px;height:20px;transition:width .25s ease, height .25s ease;}
+  header.compact .header-search-btn{width:36px;height:36px;}
+  header.compact .header-search-btn svg{width:17px;height:17px;}
   .brand-row{display:flex;align-items:center;gap:16px;}
   .brand-row img{height:46px;width:auto;display:block;transition:height .25s ease;}
   .title-block p{font-size:13px;color:var(--ink-soft);margin-top:8px;}
@@ -389,6 +398,9 @@
       <div><div class="num" id="visible-count">0</div><div class="lbl">shown</div></div>
       <div><div class="num" id="total-count">0</div><div class="lbl">total lines</div></div>
     </div>
+    <button class="header-search-btn" id="header-search-btn" aria-label="Jump to search" title="Jump to search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+    </button>
   </header>
 
   <div class="panel">
@@ -1358,6 +1370,12 @@ if (mainHeader) {
     });
   });
 }
+
+document.getElementById('header-search-btn').addEventListener('click', () => {
+  const searchInput = document.getElementById('search');
+  searchInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  setTimeout(() => searchInput.focus(), 300);
+});
 
 // ---------- Vans (shared, synced) ----------
 let vans = [];
