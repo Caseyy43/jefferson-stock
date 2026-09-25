@@ -61,12 +61,12 @@
 
   .field{display:flex;flex-direction:column;gap:5px;}
   .field label{font-size:11.5px;color:var(--ink-soft);letter-spacing:0.01em;}
-  .field input[type=text],.field input[type=number],.field textarea{
+  .field input[type=text],.field input[type=number],.field textarea,.field select{
     background:var(--bg);border:1.5px solid var(--hairline);color:var(--ink);
     padding:9px 11px;font-family:'Inter',sans-serif;font-size:14px;border-radius:2px;resize:vertical;
   }
   .field textarea{min-height:56px;}
-  .field input:focus,.field textarea:focus{outline:1.5px solid var(--green);outline-offset:-1.5px;}
+  .field input:focus,.field textarea:focus,.field select:focus{outline:1.5px solid var(--green);outline-offset:-1.5px;}
   .two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 
   .photo-input{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
@@ -178,6 +178,8 @@
   .body{padding:14px 16px 16px;display:flex;flex-direction:column;gap:10px;flex:1;}
   .sku{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;color:var(--green);}
   .desc{font-size:14.5px;font-weight:500;line-height:1.35;color:var(--ink);}
+  .category-tag{align-self:flex-start;font-size:10.5px;font-weight:600;letter-spacing:0.03em;text-transform:uppercase;color:var(--green);border:1px solid var(--green);padding:2px 7px;border-radius:2px;}
+  .category-picker{display:flex;flex-direction:column;gap:6px;}
   .contents{margin-top:auto;padding-top:10px;border-top:1px solid var(--hairline);font-size:12.5px;color:var(--ink-soft);}
   .contents .contents-label{font-size:10.5px;color:var(--ink-soft);margin-bottom:4px;}
   .contents ul{list-style:none;}
@@ -327,6 +329,7 @@
   }
   @keyframes successTick{to{stroke-dashoffset:0;}}
 
+  .van-search{margin:26px 0 0;}
   .consumable-add-row{display:grid;grid-template-columns:2fr 1fr 90px auto;gap:10px;margin-bottom:16px;align-items:end;}
   @media (max-width:640px){.consumable-add-row{grid-template-columns:1fr;}}
 
@@ -406,6 +409,13 @@
         <input type="text" id="f-desc" placeholder="Jefferson Bracket Rail W456xD130" />
       </div>
       <div class="field">
+        <label for="f-category">Category</label>
+        <div class="category-picker">
+          <select id="f-category"></select>
+          <input type="text" id="f-category-new" placeholder="New category name" style="display:none;" />
+        </div>
+      </div>
+      <div class="field">
         <label for="f-contents">Contents of box (one per line)</label>
         <textarea id="f-contents" placeholder="10x Brackets&#10;100x Hooks"></textarea>
       </div>
@@ -442,7 +452,7 @@
   <div class="toolbar">
     <div class="search-box">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-      <input id="search" type="text" placeholder="Search by code or description…" />
+      <input id="search" type="text" placeholder="Search by code, description or category…" />
     </div>
     <div class="utility-btns">
       <button id="export-btn">Export backup</button>
@@ -474,7 +484,7 @@
       <div class="panel-body open">
         <div class="field component-picker">
           <label for="transfer-search">Product</label>
-          <input type="text" id="transfer-search" placeholder="Search by code or description…" autocomplete="off" />
+          <input type="text" id="transfer-search" placeholder="Search by code, description or category…" autocomplete="off" />
           <div class="component-suggestions" id="transfer-suggestions" style="display:none;"></div>
         </div>
         <div class="two-col">
@@ -492,13 +502,18 @@
       </div>
     </div>
 
+    <div class="search-box van-search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input id="van-search" type="text" placeholder="Search this van by code, name or category…" />
+    </div>
+
     <div class="van-section-title">Stand products in this van</div>
     <div class="van-item-list" id="van-stand-list"></div>
 
     <div class="van-section-title">Consumables in this van</div>
     <div class="consumable-add-row">
       <div class="field"><label for="cons-name">New item name</label><input type="text" id="cons-name" placeholder="Mug, lanyard, etc." /></div>
-      <div class="field"><label for="cons-cat">Category</label><input type="text" id="cons-cat" placeholder="Merch" /></div>
+      <div class="field"><label for="cons-cat">Category</label><div class="category-picker"><select id="cons-cat"></select><input type="text" id="cons-cat-new" placeholder="New category name" style="display:none;" /></div></div>
       <div class="field"><label for="cons-qty">Qty</label><input type="number" id="cons-qty" min="0" value="0" /></div>
       <div class="field"><label>&nbsp;</label><button class="primary" id="add-consumable-btn" type="button">Add</button></div>
     </div>
@@ -697,7 +712,9 @@ document.getElementById('usage-close-btn').addEventListener('click', () => {
   document.getElementById('usage-overlay').classList.remove('show');
 });
 
-let products = [];       // [{id, sku, desc, contents, photos, stock}]
+let products = [];       // [{id, sku, desc, category, contents, photos, stock}]
+let vans = [];
+let selectedVanId = null;
 let orderQty = loadOrderQty();
 let carouselIndex = {};  // {productId: currentPhotoIndex} — local UI state only
 let pendingPhotos = [];
@@ -746,6 +763,71 @@ function showSuccessBurst(){
   setTimeout(() => successBurst.classList.remove('show'), 750);
 }
 
+// ---------- Categories ----------
+// The category list is derived from what's in use (plus the defaults), so a
+// category added on one device shows up everywhere once an item is saved with it.
+const DEFAULT_CATEGORY = 'Stands';
+const DEFAULT_CATEGORIES = ['Stands', 'Merch'];
+const NEW_CATEGORY_VALUE = '__new__';
+
+function categoryOf(item){
+  return (item && typeof item.category === 'string' && item.category.trim()) || DEFAULT_CATEGORY;
+}
+
+function allCategories(){
+  const seen = new Map();
+  const add = (c) => { if (c && !seen.has(c.toLowerCase())) seen.set(c.toLowerCase(), c); };
+  DEFAULT_CATEGORIES.forEach(add);
+  const extras = [];
+  products.forEach(p => extras.push(p.category));
+  vans.forEach(v => Object.values(v.consumableItems || {}).forEach(item => extras.push(categoryOf(item))));
+  extras.sort((a, b) => a.localeCompare(b)).forEach(add);
+  return Array.from(seen.values());
+}
+
+// Snap a typed name onto an existing category if it only differs by case/spacing
+function normaliseCategory(name){
+  const trimmed = name.trim().replace(/\s+/g, ' ');
+  if (!trimmed) return '';
+  return allCategories().find(c => c.toLowerCase() === trimmed.toLowerCase()) || trimmed;
+}
+
+function fillCategorySelect(selectEl, selected){
+  const cats = allCategories();
+  if (selected && !cats.some(c => c.toLowerCase() === selected.toLowerCase())) cats.push(selected);
+  selectEl.innerHTML = '';
+  cats.forEach(c => selectEl.add(new Option(c, c)));
+  selectEl.add(new Option('+ Add new…', NEW_CATEGORY_VALUE));
+  selectEl.value = selected === NEW_CATEGORY_VALUE ? NEW_CATEGORY_VALUE
+    : (cats.find(c => c.toLowerCase() === (selected || DEFAULT_CATEGORY).toLowerCase()) || DEFAULT_CATEGORY);
+}
+
+function wireCategoryPicker(selectEl, newInputEl){
+  selectEl.addEventListener('change', () => {
+    const isNew = selectEl.value === NEW_CATEGORY_VALUE;
+    newInputEl.style.display = isNew ? '' : 'none';
+    if (isNew) newInputEl.focus(); else newInputEl.value = '';
+  });
+}
+
+// Returns the chosen category, or '' if "Add new" is picked but left blank
+function readCategoryPicker(selectEl, newInputEl){
+  return selectEl.value === NEW_CATEGORY_VALUE ? normaliseCategory(newInputEl.value) : selectEl.value;
+}
+
+function resetCategoryPicker(selectEl, newInputEl, selected){
+  newInputEl.value = '';
+  newInputEl.style.display = 'none';
+  fillCategorySelect(selectEl, selected || DEFAULT_CATEGORY);
+}
+
+function refreshCategorySelects(){
+  // Keep whatever is currently picked (including a half-typed "Add new")
+  [document.getElementById('f-category'), document.getElementById('cons-cat')].forEach(sel => {
+    if (sel) fillCategorySelect(sel, sel.value || DEFAULT_CATEGORY);
+  });
+}
+
 // ---------- Firestore live sync ----------
 let previousStockById = {};
 const q = query(collection(db, 'products'), orderBy('sku'));
@@ -767,6 +849,7 @@ onSnapshot(q, (snapshot) => {
       photo: data.photo || null,
       photos: (data.photos && data.photos.length) ? data.photos : (data.photo ? [data.photo] : []),
       stock,
+      category: categoryOf(data),
       components: data.components || []
     };
   });
@@ -774,7 +857,9 @@ onSnapshot(q, (snapshot) => {
   firstSnapshotReceived = true;
   syncDot.classList.remove('offline');
   syncText.textContent = 'Synced';
+  refreshCategorySelects();
   applySearch();
+  renderVanLists();
   changedIds.forEach(id => {
     const el = document.querySelector(`.stock-input[data-id="${id}"]`);
     if (el) {
@@ -890,6 +975,7 @@ function render(list){
       <div class="body">
         <div class="sku">${escapeHtml(p.sku)}</div>
         <div class="desc">${escapeHtml(p.desc)}</div>
+        <span class="category-tag">${escapeHtml(p.category)}</span>
         <div class="contents">
           <div class="contents-label">Contents of box</div>
           ${contentsHTML}
@@ -1035,10 +1121,14 @@ function buildOrderText(){
   return lines.join('\n');
 }
 
+function productMatches(p, q){
+  return p.sku.toLowerCase().includes(q) || p.desc.toLowerCase().includes(q) || p.category.toLowerCase().includes(q);
+}
+
 function applySearch(){
   const q = document.getElementById('search').value.trim().toLowerCase();
   const filtered = q
-    ? products.filter(p => p.sku.toLowerCase().includes(q) || p.desc.toLowerCase().includes(q))
+    ? products.filter(p => productMatches(p, q))
     : products;
   render(filtered);
 }
@@ -1093,9 +1183,15 @@ const panelTitle = document.querySelector('#panel-head h2');
 const addBtn = document.getElementById('add-btn');
 const cancelEditBtn = document.getElementById('cancel-edit-btn');
 
+const categorySelect = document.getElementById('f-category');
+const categoryNewInput = document.getElementById('f-category-new');
+wireCategoryPicker(categorySelect, categoryNewInput);
+resetCategoryPicker(categorySelect, categoryNewInput);
+
 function clearForm(){
   document.getElementById('f-sku').value = '';
   document.getElementById('f-desc').value = '';
+  resetCategoryPicker(categorySelect, categoryNewInput);
   document.getElementById('f-contents').value = '';
   document.getElementById('f-stock').value = '';
   photoInput.value = '';
@@ -1131,7 +1227,7 @@ componentSearchInput.addEventListener('input', () => {
   if(!q){ componentSuggestions.style.display = 'none'; return; }
   const currentSku = document.getElementById('f-sku').value.trim();
   const matches = products.filter(p =>
-    (p.sku.toLowerCase().includes(q) || p.desc.toLowerCase().includes(q)) &&
+    productMatches(p, q) &&
     p.sku !== currentSku &&
     !pendingComponents.includes(p.sku)
   ).slice(0, 8);
@@ -1158,6 +1254,7 @@ function startEdit(id){
   editingId = id;
   document.getElementById('f-sku').value = p.sku;
   document.getElementById('f-desc').value = p.desc;
+  resetCategoryPicker(categorySelect, categoryNewInput, p.category);
   document.getElementById('f-contents').value = (p.contents || []).join('\n');
   document.getElementById('f-stock').value = p.stock;
   pendingPhotos = (p.photos && p.photos.length) ? p.photos.slice() : (p.photo ? [p.photo] : []);
@@ -1193,7 +1290,10 @@ addBtn.addEventListener('click', async () => {
   const stock = Math.max(0, parseInt(document.getElementById('f-stock').value, 10) || 0);
   const errorEl = document.getElementById('form-error');
 
-  if(!sku || !desc){ errorEl.style.display = 'block'; return; }
+  const category = readCategoryPicker(categorySelect, categoryNewInput);
+
+  if(!sku || !desc){ errorEl.textContent = 'Enter a product code and description first.'; errorEl.style.display = 'block'; return; }
+  if(!category){ errorEl.textContent = 'Type a name for the new category.'; errorEl.style.display = 'block'; categoryNewInput.focus(); return; }
   errorEl.style.display = 'none';
 
   const contents = contentsRaw ? contentsRaw.split('\n').map(s => s.trim()).filter(Boolean) : [];
@@ -1201,11 +1301,11 @@ addBtn.addEventListener('click', async () => {
 
   try{
     if(editingId){
-      await updateDoc(doc(db, 'products', editingId), { sku, desc, contents, stock, photos: pendingPhotos, components: pendingComponents });
+      await updateDoc(doc(db, 'products', editingId), { sku, desc, category, contents, stock, photos: pendingPhotos, components: pendingComponents });
       cancelEdit();
       showToast('Changes saved');
     } else {
-      await addDoc(collection(db, 'products'), { sku, desc, contents, stock, photos: pendingPhotos, components: pendingComponents, createdAt: serverTimestamp() });
+      await addDoc(collection(db, 'products'), { sku, desc, category, contents, stock, photos: pendingPhotos, components: pendingComponents, createdAt: serverTimestamp() });
       clearForm();
       showToast('Added to sheet');
     }
@@ -1290,7 +1390,7 @@ document.getElementById('import-file').addEventListener('change', (e) => {
           }
         }
         await addDoc(collection(db, 'products'), {
-          sku: item.sku || '', desc: item.desc || '', contents: item.contents || [],
+          sku: item.sku || '', desc: item.desc || '', category: categoryOf(item), contents: item.contents || [],
           stock: (typeof item.stock === 'number') ? item.stock : 0,
           components: item.components || [],
           photos: photosList, createdAt: serverTimestamp()
@@ -1360,8 +1460,6 @@ if (mainHeader) {
 }
 
 // ---------- Vans (shared, synced) ----------
-let vans = [];
-let selectedVanId = null;
 let pickedTransferProductId = null;
 
 const vanQuery = query(collection(db, 'vans'), orderBy('name'));
@@ -1376,6 +1474,7 @@ onSnapshot(vanQuery, (snapshot) => {
   } else {
     selectedVanId = null;
   }
+  refreshCategorySelects();
   renderVanLists();
 });
 document.getElementById('van-select').addEventListener('change', (e) => {
@@ -1406,36 +1505,48 @@ function renderVanLists(){
     return;
   }
 
+  const vanQ = document.getElementById('van-search').value.trim().toLowerCase();
+  const noMatchHTML = '<div class="van-empty">No items in this van match that search.</div>';
+
   const standItems = van.standItems || {};
-  const standIds = Object.keys(standItems).filter(id => standItems[id] > 0);
+  const allStandIds = Object.keys(standItems).filter(id => standItems[id] > 0);
+  const standIds = vanQ ? allStandIds.filter(id => {
+    const p = products.find(pr => pr.id === id);
+    return p && productMatches(p, vanQ);
+  }) : allStandIds;
   standListEl.innerHTML = standIds.length ? standIds.map(id => {
     const p = products.find(pr => pr.id === id);
     const sku = p ? p.sku : '(deleted product)';
     const desc = p ? p.desc : '';
+    const cat = p ? p.category : '';
     return `<div class="van-item-row">
-      <div class="vi-main"><span class="vi-sku">${escapeHtml(sku)}</span><span class="vi-desc">${escapeHtml(desc)}</span></div>
+      <div class="vi-main"><span class="vi-sku">${escapeHtml(sku)}</span><span class="vi-desc">${escapeHtml(desc)}</span><span class="vi-cat">${escapeHtml(cat)}</span></div>
       <div class="vi-controls">
         <span class="vi-qty">${standItems[id]}</span>
         <button class="ghost" data-return-id="${id}" type="button" title="Return 1 to warehouse stock">Return 1</button>
       </div>
     </div>`;
-  }).join('') : '<div class="van-empty"><svg class="empty-icon" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M12 2l2.9 6.26L22 9.27l-5 4.87L18.18 21 12 17.27 5.82 21 7 14.14l-5-4.87 7.1-1.01L12 2z"/></svg>Nothing transferred to this van yet.</div>';
+  }).join('') : allStandIds.length ? noMatchHTML : '<div class="van-empty"><svg class="empty-icon" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M12 2l2.9 6.26L22 9.27l-5 4.87L18.18 21 12 17.27 5.82 21 7 14.14l-5-4.87 7.1-1.01L12 2z"/></svg>Nothing transferred to this van yet.</div>';
 
   standListEl.querySelectorAll('[data-return-id]').forEach(btn => {
     btn.addEventListener('click', () => returnToStock(btn.dataset.returnId));
   });
 
   const consItems = van.consumableItems || {};
-  const consIds = Object.keys(consItems);
+  const allConsIds = Object.keys(consItems);
+  const consIds = vanQ ? allConsIds.filter(id => {
+    const item = consItems[id];
+    return (item.name || '').toLowerCase().includes(vanQ) || categoryOf(item).toLowerCase().includes(vanQ);
+  }) : allConsIds;
   consListEl.innerHTML = consIds.length ? consIds.map(id => {
     const item = consItems[id];
     return `<div class="van-item-row">
-      <div class="vi-main"><span class="vi-desc">${escapeHtml(item.name)}</span><span class="vi-cat">${escapeHtml(item.category || '')}</span></div>
+      <div class="vi-main"><span class="vi-desc">${escapeHtml(item.name)}</span><span class="vi-cat">${escapeHtml(categoryOf(item))}</span></div>
       <div class="vi-controls">
         <input type="number" min="0" class="cons-qty-input" data-cons-id="${id}" value="${item.qty}" style="width:56px;text-align:center;background:var(--bg);border:1.5px solid var(--hairline);color:var(--green);font-family:'JetBrains Mono',monospace;font-weight:600;padding:5px;border-radius:3px;" />
       </div>
     </div>`;
-  }).join('') : '<div class="van-empty"><svg class="empty-icon" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M12 2l2.9 6.26L22 9.27l-5 4.87L18.18 21 12 17.27 5.82 21 7 14.14l-5-4.87 7.1-1.01L12 2z"/></svg>No consumables logged for this van yet.</div>';
+  }).join('') : allConsIds.length ? noMatchHTML : '<div class="van-empty"><svg class="empty-icon" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M12 2l2.9 6.26L22 9.27l-5 4.87L18.18 21 12 17.27 5.82 21 7 14.14l-5-4.87 7.1-1.01L12 2z"/></svg>No consumables logged for this van yet.</div>';
 
   consListEl.querySelectorAll('.cons-qty-input').forEach(input => {
     input.addEventListener('change', async () => {
@@ -1449,6 +1560,8 @@ function renderVanLists(){
     });
   });
 }
+
+document.getElementById('van-search').addEventListener('input', renderVanLists);
 
 async function returnToStock(productId){
   const van = getSelectedVan();
@@ -1469,7 +1582,7 @@ const transferSuggestions = document.getElementById('transfer-suggestions');
 transferSearch.addEventListener('input', () => {
   const q = transferSearch.value.trim().toLowerCase();
   if(!q){ transferSuggestions.style.display = 'none'; return; }
-  const matches = products.filter(p => p.sku.toLowerCase().includes(q) || p.desc.toLowerCase().includes(q)).slice(0, 8);
+  const matches = products.filter(p => productMatches(p, q)).slice(0, 8);
   transferSuggestions.innerHTML = matches.length
     ? matches.map(p => `<div class="suggestion" data-pick-id="${p.id}"><span class="s-sku">${escapeHtml(p.sku)}</span><span class="s-desc">${escapeHtml(p.desc)} — ${p.stock} in stock</span></div>`).join('')
     : '<div class="no-match">No matching products</div>';
@@ -1515,17 +1628,23 @@ document.getElementById('transfer-btn').addEventListener('click', async () => {
 });
 
 // ---------- Add consumable ----------
+const consCatSelect = document.getElementById('cons-cat');
+const consCatNewInput = document.getElementById('cons-cat-new');
+wireCategoryPicker(consCatSelect, consCatNewInput);
+resetCategoryPicker(consCatSelect, consCatNewInput);
+
 document.getElementById('add-consumable-btn').addEventListener('click', async () => {
   if (!selectedVanId) { showToast('Add a van first'); return; }
   const name = document.getElementById('cons-name').value.trim();
-  const category = document.getElementById('cons-cat').value.trim();
+  const category = readCategoryPicker(consCatSelect, consCatNewInput);
   const qty = Math.max(0, parseInt(document.getElementById('cons-qty').value, 10) || 0);
   if (!name) { showToast('Give the item a name first'); return; }
+  if (!category) { showToast('Type a name for the new category'); consCatNewInput.focus(); return; }
   const consId = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()));
   try{
     await updateDoc(doc(db, 'vans', selectedVanId), { [`consumableItems.${consId}`]: { name, category, qty } });
     document.getElementById('cons-name').value = '';
-    document.getElementById('cons-cat').value = '';
+    resetCategoryPicker(consCatSelect, consCatNewInput);
     document.getElementById('cons-qty').value = 0;
     showToast('Added to van');
   }catch(e){ showToast('Could not add — check connection'); }
